@@ -3,7 +3,6 @@ cycler==0.12.1
 fonttools==4.54.1
 kiwisolver==1.4.7
 matplotlib==3.9.2
--e git+ssh://git@github.com/nramirez-f/Navier-Stokes.git@6a81911f3b9c0dcd728d40afb610abf9f6448cee#egg=Navier_Stokes
 numpy==2.1.1
 packaging==24.1
 pillow==10.4.0
