@@ -12,14 +12,14 @@ xf = 1
 # Domain length in axis X
 Lx = np.abs(xf - x0)
 # Subintervals in axis X
-nx = 5
+nx = 10
 # Interval in axis Y
 y0 = 0
 yf = 1
 # Domain length in axis X
 Ly = np.abs(yf - y0)
 # Subintervals in axis Y
-ny = 5
+ny = 10
 
 ## Phisical Variables ##
 # Dinamic Viscosity

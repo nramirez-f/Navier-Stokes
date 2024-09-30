@@ -1,4 +1,57 @@
 import numpy as np
+from scipy.sparse import identity, lil_matrix
+import sys
+
+
+# Aproximation of Laplacian of pressure
+def poisson_system(nx, ny, dx, dy):
+    
+     # Auxiliar Matrixes
+    D=identity(nx,dtype='float64',format='csc')
+    D = (dx / dy) * D
+
+    M = lil_matrix((nx,nx), dtype='float64')
+    d = (-2) * ((dy / dx) + (dx / dy))
+    sd = dy / dx
+    M.setdiag(d*np.ones(nx),0)
+    M.setdiag(sd*np.ones(nx-1),1)
+    M.setdiag(sd*np.ones(nx-1),-1)
+    M[0,1] = 1 * sd # 2*sd (bajarlo a 1 me baja el condicionamiento)
+    M[nx-1,nx-2] = 1 * sd # 2*sd (bajarlo a 1 me baja el condicionamiento)
+    # Change lil to csc
+    M = M.tocsc()
+
+    # System Matrix
+    A = lil_matrix((nx*ny,nx*ny), dtype='float64')
+
+    # Neumman Conditions (State Duplication)
+
+    # First Row BlocksM.setdiag(d*np.ones(nx),0)
+    Ms = lil_matrix((nx,nx), dtype='float64')
+    Ms.setdiag(d*np.ones(nx),0)
+    Ms.setdiag(sd*np.ones(nx-1),1)
+    A[0:nx,0:nx] = Ms
+    A[0:nx,nx:2*nx] = 1 * D # 2*D
+
+    # Last Row Blocks
+    Mn = lil_matrix((nx,nx), dtype='float64')
+    Mn.setdiag(d*np.ones(nx),0)
+    Mn.setdiag(sd*np.ones(nx-1),-1)
+    A[(ny-1)*nx:ny*nx,(ny-1)*nx:ny*nx] = Mn
+    A[(ny-1)*nx:ny*nx,(ny-2)*nx:(ny-1)*nx] = 1 * D # 2*D
+
+    for i in range(1, ny-1):
+        A[i*nx:(i+1)*nx,(i-1)*nx:i*nx] = D
+        A[i*nx:(i+1)*nx,i*nx:(i+1)*nx] = M
+        A[i*nx:(i+1)*nx,(i+1)*nx:(i+2)*nx] = D
+
+    A_dense = A.toarray()
+    condicionamiento = np.linalg.cond(A_dense)
+    print(f'Cond A: {condicionamiento}')
+   
+    A = A.tocsc()
+
+    return A
 
 # Aproximation of F(u) by finite volumes
 def conv_diff_u(u, v, Re, mesh):

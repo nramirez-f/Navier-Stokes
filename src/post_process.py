@@ -82,12 +82,11 @@ def pressure_contour(mesh, p:np.ndarray):
     plt.pause(5)
     plt.close('All')
 
-def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float):
+def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float, n:int):
     """
     """
     X, Y = mesh
     
-    plt.clf()
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
     # Plot U
@@ -111,8 +110,9 @@ def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: floa
     axes[2].set_ylabel('Y')
     fig.colorbar(contour3, ax=axes[2])
 
-    plt.suptitle(f'Approximation at time {t}', fontsize=16)
+    plt.suptitle(f'Approximation at time {t} (n={n})', fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.pause(5)
+    plt.pause(3)
     plt.close(fig)
+    #plt.show()
 

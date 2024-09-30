@@ -6,7 +6,7 @@ from poisson import poisson_2D
 import time
 
 
-def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.ndarray], gv:Callable[[np.ndarray, np.ndarray], np.ndarray],  Re:float, convergence_criteria:float = 5e-6):
+def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.ndarray], gv:Callable[[np.ndarray, np.ndarray], np.ndarray],  Re:float, convergence_criteria:float = 5e-6, max_iterations:int = 1000):
     """
     mesh: Domain of the problem
     gu: Dirichlet boundary conditions for component u
@@ -53,18 +53,21 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     print(f'dx: {dx}')
     print(f'dy: {dy}')
 
+    ## Calculate the matrix of the poisson problem
+    A = poisson_system(nx, ny, dx, dy)
+
     ## Calculate of dt (CFL Condition) ##
-    norm_2_u =  np.sqrt(np.sum((dy * dx * u**2).reshape(nodes_x * nodes_y)))
-    norm_2_v =  np.sqrt(np.sum((dy * dx * v**2).reshape(nodes_x * nodes_y)))
-    norm_vec_u = np.sqrt(norm_2_u**2 + norm_2_v**2)
-    security_factor = 0.5
+    norm_2_u =  np.sqrt(np.sum((dy * dx * (u**2)).reshape((nx+2) * (ny+2))))
+    norm_2_v =  np.sqrt(np.sum((dy * dx * (v**2)).reshape((nx+2) * (ny+2))))
+    norm_vec_u = np.sqrt(np.sqrt(norm_2_u) + np.sqrt(norm_2_v))
+    security_factor = 1
     cfl_top = dx / norm_vec_u
     dt = security_factor * cfl_top
 
     print(f'dt: {dt}')
 
     ## Plot Initial Conditions ##
-    velocities_contour(mesh, u, v)
+    #velocities_contour(mesh, u, v)
     
     ## Time Iteraion ##
     t = dt
@@ -73,26 +76,40 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     error_v = 1
     u_old = u.copy()
     v_old = v.copy()
-    while  (n < 3):
+    while  ((error_v > convergence_criteria) and n < 40):
+        print(f'\n****************')
+        print(f'n:{n}')
         print(f'Working on time {t}...')
         if (n == 1):
             # Intermediate Velocity
             print('Calculating intermediate velocity...')
             u_star, v_star, Fu_old, Fv_old = intermediate_velocity_euler(u_old , v_old, Re, mesh, dt)
+            
+            print('Intermediate Velocities:')
+            norm_2_u_star =  np.sqrt(np.sum((dy * dx * (u_star**2)).reshape((nx+2) * (ny+2))))
+            norm_2_v_star =  np.sqrt(np.sum((dy * dx * (v_star**2)).reshape((nx+2) * (ny+2))))
+            print(f'Norm 2 U_STAR: {norm_2_u_star}')
+            print(f'Norm 2 V_STAR: {norm_2_v_star}')
 
-            velocities_contour(mesh, u, v, 'Intermediate velocities (Euler)')
+            #velocities_contour(mesh, u, v, 'Intermediate velocities (Euler)')
 
             # Pressure as Poisson Solution
             print('Solving Poisson Equation...')
-            p = poisson_2D(mesh, u_star, v_star, p, dt)
+            p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt)
 
-            pressure_contour(mesh, p)
+            print('Pressure:')
+            norm_2_p =  np.sqrt(np.sum((dy * dx * (p**2)).reshape((nx+2) * (ny+2))))
+            print(f'Norm 2 P: {norm_2_p}')
+
+            #pressure_contour(mesh, p)
 
             # Correction of Intermediate Velocity
             print('Correcting the velocity...')
             grad_pu, grad_pv = gradient(p, mesh)
             u = u_old - grad_pu
             v = v_old - grad_pv
+
+            #velocities_contour(mesh, grad_pu, grad_pv, 'Pressure Gradient')
 
             ## Impose Dirichlet Boundary Conditions ##
             print('Imposing Dirichlet Conditions...')
@@ -114,19 +131,31 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             print('Calculating intermediate velocity...')
             u_star, v_star, Fu_old, Fv_old = intermediate_velocity_adamsB(u , v, Re, mesh, Fu_old, Fv_old, dt)
 
-            velocities_contour(mesh, u, v, 'Intermediate velocities (Adams Bashford)')
+            print('Intermediate Velocities:')
+            norm_2_u_star =  np.sqrt(np.sum((dy * dx * (u_star**2)).reshape((nx+2) * (ny+2))))
+            norm_2_v_star =  np.sqrt(np.sum((dy * dx * (v_star**2)).reshape((nx+2) * (ny+2))))
+            print(f'Norm 2 U_STAR: {norm_2_u_star}')
+            print(f'Norm 2 V_STAR: {norm_2_v_star}')
+
+            #velocities_contour(mesh, u, v, 'Intermediate velocities (Adams Bashford)')
 
             # Pressure as Poisson Solution
             print('Solving Poisson Equation...')
-            p = poisson_2D(mesh, u_star, v_star, p, dt)
+            p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt)
 
-            pressure_contour(mesh, p)
+            print('Pressure:')
+            norm_2_p =  np.sqrt(np.sum((dy * dx * (p**2)).reshape((nx+2) * (ny+2))))
+            print(f'Norm 2 P: {norm_2_p}')
+
+            #pressure_contour(mesh, p)
 
             # Correction of Intermediate Velocity
             print('Correcting the velocity...')
             grad_pu, grad_pv = gradient(p, mesh)
             u = u_old - grad_pu
             v = v_old - grad_pv
+
+            #velocities_contour(mesh, grad_pu, grad_pv, 'Pressure Gradient')
 
             ## Impose Dirichlet Boundary Conditions ##
             print('Imposing Dirichlet Conditions...')
@@ -145,28 +174,37 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
 
         ## Calculate Errors ##
         print('Calculating Errors...')
-        norm_2_u =  np.sqrt(np.sum((dy * dx * u**2).reshape(nodes_x * nodes_y)))
-        norm_2_v =  np.sqrt(np.sum((dy * dx * v**2).reshape(nodes_x * nodes_y)))
+        norm_2_u =  np.sqrt(np.sum((dy * dx * u**2).reshape((nx+2) * (ny+2))))
+        norm_2_v =  np.sqrt(np.sum((dy * dx * v**2).reshape((nx+2) * (ny+2))))
+        print(f'Norm 2 U: {norm_2_u}')
+        print(f'Norm 2 V: {norm_2_v}')
 
-        error_u = np.sqrt(np.sum((dy * dx * np.abs(u - u_old)**2).reshape(nodes_x * nodes_y))) / norm_2_u
-        error_v = np.sqrt(np.sum((dy * dx * np.abs(v - v_old)**2).reshape(nodes_x * nodes_y))) / norm_2_v
+        error_u = np.sqrt(np.sum((dy * dx * np.abs(u - u_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_u
+        error_v = np.sqrt(np.sum((dy * dx * np.abs(v - v_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_v
+        print(f'Error on U component: {error_u}')
+        print(f'Error on V component: {error_v}')
 
         print('Copiyng Solutions...')
         u_old = u.copy()
         v_old = v.copy()
 
         
-        if np.any(np.abs(u) > 1e6):
+        if np.any(norm_2_u > 1e6):
             print("U too large!!")
             break
-        elif np.any(np.abs(v) > 1e6):
+        elif np.any(norm_2_v > 1e6):
             print("V too large!!")
             break
-        elif np.any(np.abs(p) > 1e6):
+        elif np.any(norm_2_p > 1e6):
             print("P too large!!")
             break
+
+        variables_contour(mesh, u, v, p, t, n)
         
-        variables_contour(mesh, u, v, p, t)
+        if (error_v < convergence_criteria):
+            print('Reach to convergence Criteria')
+            variables_contour(mesh, u, v, p, t)
+            break
         
         t += dt
         n += 1
