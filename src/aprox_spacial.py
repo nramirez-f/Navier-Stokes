@@ -87,13 +87,13 @@ def gradient(p, mesh):
     dy = np.diff(Y[:, 0])[0]
 
     # Gradient Components
-    grad_pu = np.zeros((nodes_y, nodes_x))
-    grad_pv = np.zeros((nodes_y, nodes_x))
+    grad_pu = np.zeros((ny+2, nx+2))
+    grad_pv = np.zeros((ny+2, nx+2))
 
     for i in range(1, nx+1):
         for j in range(1,ny+1):
-            grad_pu[j,i] = (p[j,i+1] - p[j,i-1]) / (2 * dx)
-            grad_pv[j,i] = (p[j+1,i] - p[j-1,i]) / (2 * dy)
+            grad_pu[j,i] = 0.5 * (p[j,i+1] - p[j,i-1]) / dx
+            grad_pv[j,i] = 0.5 * (p[j+1,i] - p[j-1,i]) / dy
     
     ## Boundary conditions ##
     # U
@@ -105,4 +105,17 @@ def gradient(p, mesh):
         grad_pv[0,i] = (p[1,i] - p[0,i]) / dy
         grad_pv[ny+1,i] = (p[ny+1,i] - p[ny,i]) / dy
 
-    return (grad_pu, grad_pv)  
+    return (grad_pu, grad_pv)
+
+def divergence(u_star, v_star, dx, dy, nx, ny):
+    
+    ## Mi primer esquema: 0.5 * (dy * (u_star[j,i+1] - u_star[j,i-1]) + dx * (v_star[j+1,i] - v_star[j-1,i]))
+    ## En su caso dy y dx estan permutados pero creo que esá mal
+    ## No entiendo bien como sale esta dicretizacion, puede ser un desplazamiento pero entonces como lo he hecho en teoria no coincide
+
+    result = np.zeros((ny,nx)) 
+    
+    result = 0.5 * (dy * (u_star[1:ny+1,1:nx+1] - u_star[1:ny+1,0:nx]) + dx * (v_star[1:ny+1,1:nx+1] - v_star[0:ny,1:nx+1]))
+
+    return  result
+

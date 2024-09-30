@@ -3,8 +3,9 @@ import numpy as np
 from scipy.sparse import identity, lil_matrix
 from scipy.sparse.linalg import splu
 from post_process import *
+from aprox_spacial import *
 
-def poisson_2D(mesh:np.ndarray, u_star, v_star, dt):
+def poisson_2D(mesh:np.ndarray, u_star, v_star, p, dt):
     """
     Solve the problem:
     
@@ -31,52 +32,57 @@ def poisson_2D(mesh:np.ndarray, u_star, v_star, dt):
 
     
     # Auxiliar Matrixes
-    D=identity(nx+2,dtype='float64',format='csc')
+    D=identity(nx,dtype='float64',format='csc')
     D = (1/(dy**2)) * D
 
-    M = lil_matrix((nx+2,nx+2), dtype='float64')
+    M = lil_matrix((nx,nx), dtype='float64')
     d = (-2) * (1 / (dx**2) + 1 / (dy**2))
     sd = 1 / (dx**2)
-    M.setdiag(d*np.ones(nx+2),0)
-    M.setdiag(sd*np.ones(nx+1),1)
-    M.setdiag(sd*np.ones(nx+1),-1)
+    M.setdiag(d*np.ones(nx),0)
+    M.setdiag(sd*np.ones(nx-1),1)
+    M.setdiag(sd*np.ones(nx-1),-1)
     M[0,1] = 2 * sd
-    M[nx+1,nx] = 2 * sd
+    M[nx-1,nx-2] = 2 * sd
 
     # Change lil to csc
     M = M.tocsc()
 
     # System Matrix
-    N = int((nx+2)*(ny+2))
+    A = lil_matrix((nx*ny,nx*ny), dtype='float64')
 
-    A = lil_matrix((N,N), dtype='float64')
+    # Neumman Conditions (State Duplication)
+    # First Row Blocks
+    A[0:nx,0:nx] = M
+    A[0:nx,nx:2*nx] = 2 * D
+    # Last Row Blocks
+    A[(ny-1)*nx:ny*nx,(ny-1)*nx:ny*nx] = M
+    A[(ny-1)*nx:ny*nx,(ny-2)*nx:(ny-1)*nx] = 2 * D
 
-    A[0:(nx+2),0:(nx+2)] = M
-    A[0:(nx+2),(nx+2):2*(nx+2)] = 2 * D
-    A[(ny+1)*(nx+2):(ny+2)*(nx+2),(ny+1)*(nx+2):(ny+2)*(nx+2)] = M
-    A[(ny+1)*(nx+2):(ny+2)*(nx+2),(ny)*(nx+2):(ny+1)*(nx+2)] = 2 * D
-
-    for i in range(1,ny+1):
-        A[i*(nx+2):(i+1)*(nx+2),(i-1)*(nx+2):i*(nx+2)] = D
-        A[i*(nx+2):(i+1)*(nx+2),i*(nx+2):(i+1)*(nx+2)] = M
-        A[i*(nx+2):(i+1)*(nx+2),(i+1)*(nx+2):(i+2)*(nx+2)] = D
+    for i in range(1, ny-1):
+        A[i*nx:(i+1)*nx,(i-1)*nx:i*nx] = D
+        A[i*nx:(i+1)*nx,i*nx:(i+1)*nx] = M
+        A[i*nx:(i+1)*nx,(i+1)*nx:(i+2)*nx] = D
 
     A = A.tocsc()
 
     #Second Member (Divergence of Intermediate Velocities)
-    b = np.zeros((ny+2, nx+2))
-    for i in range(1, nx+1):
-        for j in range(1, ny+1): 
-            b[j,i] = 0.5 * (dy * (u_star[j,i+1] - u_star[j,i-1]) + dx * (v_star[j+1,i] - v_star[j-1,i])) / dt
+    b = divergence(u_star, v_star, dx, dy, nx, ny) / dt
 
-    intermediate_divergence(mesh, b)
+    intermediate_divergence((X[1:ny+1,1:nx+1], Y[1:ny+1, 1:nx+1]), divergence(u_star, v_star, dx, dy, nx, ny))
 
-    b = b.reshape(N)
+    b = b.reshape(nx*ny)
 
-    # Resolution
+    # Resolution on Interior Nodes
     LU = splu(A)
-    p = LU.solve(b)
-    p = p.reshape((ny+2,nx+2))
+    p_star = LU.solve(b)
+    p_star = p_star.reshape((ny,nx))
+
+    # Update pressure
+    p[1:ny+1, 1:nx+1] = p_star.copy()
+    p[0,:] = p[1,:]
+    p[ny+1,:] = p[ny,:]
+    p[:,0] = p[:,1]
+    p[:,nx+1] = p[:,nx]
 
     return p
     

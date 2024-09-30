@@ -84,7 +84,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
 
             # Pressure as Poisson Solution
             print('Solving Poisson Equation...')
-            p = poisson_2D(mesh, u_star, v_star, dt)
+            p = poisson_2D(mesh, u_star, v_star, p, dt)
 
             pressure_contour(mesh, p)
 
@@ -118,7 +118,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
 
             # Pressure as Poisson Solution
             print('Solving Poisson Equation...')
-            p = poisson_2D(mesh, u_star, v_star, dt)
+            p = poisson_2D(mesh, u_star, v_star, p, dt)
 
             pressure_contour(mesh, p)
 
