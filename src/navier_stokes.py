@@ -76,7 +76,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     error_v = 1
     u_old = u.copy()
     v_old = v.copy()
-    while  ((error_v > convergence_criteria) and n < 40):
+    while  ((error_v > convergence_criteria) and n < 1000):
         print(f'\n****************')
         print(f'n:{n}')
         print(f'Working on time {t}...')
@@ -199,11 +199,11 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             print("P too large!!")
             break
 
-        variables_contour(mesh, u, v, p, t, n)
+        #variables_contour(mesh, u, v, p, t, n)
         
         if (error_v < convergence_criteria):
             print('Reach to convergence Criteria')
-            variables_contour(mesh, u, v, p, t)
+            variables_contour(mesh, u, v, p, t, n)
             break
         
         t += dt
