@@ -6,7 +6,7 @@ import sys
 # Aproximation of Laplacian of pressure
 def poisson_system(nx, ny, dx, dy):
     
-     # Auxiliar Matrixes
+    # Auxiliar Matrixes
     D=identity(nx,dtype='float64',format='csc')
     D = (dx / dy) * D
 
@@ -25,8 +25,6 @@ def poisson_system(nx, ny, dx, dy):
     A = lil_matrix((nx*ny,nx*ny), dtype='float64')
 
     # Neumman Conditions (State Duplication)
-
-    # First Row BlocksM.setdiag(d*np.ones(nx),0)
     Ms = lil_matrix((nx,nx), dtype='float64')
     Ms.setdiag(d*np.ones(nx),0)
     Ms.setdiag(sd*np.ones(nx-1),1)
