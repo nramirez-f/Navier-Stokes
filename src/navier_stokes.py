@@ -106,8 +106,8 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             # Correction of Intermediate Velocity
             print('Correcting the velocity...')
             grad_pu, grad_pv = gradient(p, mesh)
-            u = u_old - grad_pu
-            v = v_old - grad_pv
+            u = u_old - dt * grad_pu
+            v = v_old - dt * grad_pv
 
             #velocities_contour(mesh, grad_pu, grad_pv, 'Pressure Gradient')
 
