@@ -16,8 +16,8 @@ def poisson_system(nx, ny, dx, dy):
     M.setdiag(d*np.ones(nx),0)
     M.setdiag(sd*np.ones(nx-1),1)
     M.setdiag(sd*np.ones(nx-1),-1)
-    M[0,1] = 1 * sd # 2*sd (bajarlo a 1 me baja el condicionamiento)
-    M[nx-1,nx-2] = 1 * sd # 2*sd (bajarlo a 1 me baja el condicionamiento)
+    M[0,1] = 2 * sd
+    M[nx-1,nx-2] = 2 * sd
     # Change lil to csc
     M = M.tocsc()
 
@@ -31,14 +31,14 @@ def poisson_system(nx, ny, dx, dy):
     Ms.setdiag(d*np.ones(nx),0)
     Ms.setdiag(sd*np.ones(nx-1),1)
     A[0:nx,0:nx] = Ms
-    A[0:nx,nx:2*nx] = 1 * D # 2*D
+    A[0:nx,nx:2*nx] = 2 * D
 
     # Last Row Blocks
     Mn = lil_matrix((nx,nx), dtype='float64')
     Mn.setdiag(d*np.ones(nx),0)
     Mn.setdiag(sd*np.ones(nx-1),-1)
     A[(ny-1)*nx:ny*nx,(ny-1)*nx:ny*nx] = Mn
-    A[(ny-1)*nx:ny*nx,(ny-2)*nx:(ny-1)*nx] = 1 * D # 2*D
+    A[(ny-1)*nx:ny*nx,(ny-2)*nx:(ny-1)*nx] = 2 * D
 
     for i in range(1, ny-1):
         A[i*nx:(i+1)*nx,(i-1)*nx:i*nx] = D
@@ -162,10 +162,6 @@ def gradient(p, mesh):
 
 def divergence(u_star, v_star, dx, dy, nx, ny):
     
-    ## Mi primer esquema: 0.5 * (dy * (u_star[j,i+1] - u_star[j,i-1]) + dx * (v_star[j+1,i] - v_star[j-1,i]))
-    ## En su caso dy y dx estan permutados pero creo que esá mal
-    ## No entiendo bien como sale esta dicretizacion, puede ser un desplazamiento pero entonces como lo he hecho en teoria no coincide
-
     result = np.zeros((ny,nx)) 
     
     result = 0.5 * (dy * (u_star[1:ny+1,1:nx+1] - u_star[1:ny+1,0:nx]) + dx * (v_star[1:ny+1,1:nx+1] - v_star[0:ny,1:nx+1]))
