@@ -20,11 +20,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     nodes_y, nodes_x = X.shape
     # Interior points
     nx = nodes_x - 2
-    ny = nodes_y - 2
-
-    print(f'Interior nodes axis X: {nx}')   
-    print(f'Interior nodes axis Y: {ny}')
-    print(f'Cells Numbers: {(nx+1) * (ny+1)}')   
+    ny = nodes_y - 2  
 
     ## Variables ##
     # Initial Velocity Components (suppose flow is rest)
@@ -50,9 +46,6 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     dx = np.diff(X[0,:])[0]
     dy = np.diff(Y[:, 0])[0]
 
-    print(f'dx: {dx}')
-    print(f'dy: {dy}')
-
     ## Calculate the matrix of the poisson problem
     A = poisson_system(nx, ny, dx, dy)
 
@@ -63,20 +56,21 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     security_factor = 1
     cfl_top = dx / norm_vec_u
     dt = security_factor * cfl_top
-
-    print(f'dt: {dt}')
+    #dt = 5e-3 # dt of mathlab code
 
     ## Plot Initial Conditions ##
-    #velocities_contour(mesh, u, v)
+    velocities_contour(mesh, u, v)
     
     ## Time Iteraion ##
     t = dt
     n = 1
     error_u = 1
     error_v = 1
+    relative_error_v = 1
+    relative_error_u = 1
     u_old = u.copy()
     v_old = v.copy()
-    while  ((error_v > convergence_criteria) and n < 1000):
+    while  (relative_error_v > convergence_criteria):
         print(f'\n****************')
         print(f'n:{n}')
         print(f'Working on time {t}...')
@@ -106,8 +100,8 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             # Correction of Intermediate Velocity
             print('Correcting the velocity...')
             grad_pu, grad_pv = gradient(p, mesh)
-            u = u_old - dt * grad_pu
-            v = v_old - dt * grad_pv
+            u = u_star - dt * grad_pu
+            v = v_star - dt * grad_pv
 
             #velocities_contour(mesh, grad_pu, grad_pv, 'Pressure Gradient')
 
@@ -152,8 +146,8 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             # Correction of Intermediate Velocity
             print('Correcting the velocity...')
             grad_pu, grad_pv = gradient(p, mesh)
-            u = u_old - dt * grad_pu
-            v = v_old - dt * grad_pv
+            u = u_star - dt * grad_pu
+            v = v_star - dt * grad_pv
 
             #velocities_contour(mesh, grad_pu, grad_pv, 'Pressure Gradient')
 
@@ -176,19 +170,25 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
         print('Calculating Errors...')
         norm_2_u =  np.sqrt(np.sum((dy * dx * u**2).reshape((nx+2) * (ny+2))))
         norm_2_v =  np.sqrt(np.sum((dy * dx * v**2).reshape((nx+2) * (ny+2))))
+        norm_2_v_old =  np.sqrt(np.sum((dy * dx * v_old**2).reshape((nx+2) * (ny+2))))
+        norm_2_u_old =  np.sqrt(np.sum((dy * dx * u_old**2).reshape((nx+2) * (ny+2))))
         print(f'Norm 2 U: {norm_2_u}')
         print(f'Norm 2 V: {norm_2_v}')
 
         error_u = np.sqrt(np.sum((dy * dx * np.abs(u - u_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_u
         error_v = np.sqrt(np.sum((dy * dx * np.abs(v - v_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_v
+        relative_error_u = (norm_2_u - norm_2_u_old) / norm_2_u
+        relative_error_v = (norm_2_v - norm_2_v_old) / norm_2_v
+
         print(f'Error on U component: {error_u}')
         print(f'Error on V component: {error_v}')
+        print(f'Relative Error V: {relative_error_v}')
 
         print('Copiyng Solutions...')
         u_old = u.copy()
         v_old = v.copy()
 
-        
+        # Manage high values
         if np.any(norm_2_u > 1e6):
             print("U too large!!")
             break
@@ -198,10 +198,10 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
         elif np.any(norm_2_p > 1e6):
             print("P too large!!")
             break
-
-        #variables_contour(mesh, u, v, p, t, n)
+        if (n%100 == 0):
+            variables_contour(mesh, u, v, p, t, n)
         
-        if (error_v < convergence_criteria):
+        if (relative_error_v < convergence_criteria):
             print('Reach to convergence Criteria')
             variables_contour(mesh, u, v, p, t, n)
             break
