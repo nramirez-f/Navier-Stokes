@@ -71,15 +71,15 @@ def conv_diff_u(u, v, Re, mesh):
     for i in range(1, nx):
         for j in range(1, ny+1):
 
-            u_w = (u[j,i] + u[j, i-1]) / 2
-            u_e = (u[j,i+1] + u[j, i]) / 2
-            v_n = (v[j,i+1] + v[j, i]) / 2
-            v_s = (v[j-1,i+1] + v[j-1, i]) / 2
+            u_w = (u[j,i] + u[j, i-1]) * 0.5
+            u_e = (u[j,i+1] + u[j, i]) * 0.5
+            v_n = (v[j,i+1] + v[j, i]) * 0.5
+            v_s = (v[j-1,i+1] + v[j-1, i]) * 0.5
 
-            a_w = dy * (1 / (Re * dx) + u_w / 2)
-            a_e = dy * (1 / (Re * dx) + u_e / 2)
-            a_n = dx * (1 / (Re * dy) + v_s / 2)
-            a_s = dx * (1 / (Re * dy) + v_n / 2)
+            a_w = dy * (1 / (Re * dx) + u_w * 0.5)
+            a_e = dy * (1 / (Re * dx) - u_e * 0.5)
+            a_n = dx * (1 / (Re * dy) - v_n * 0.5)
+            a_s = dx * (1 / (Re * dy) + v_s * 0.5)
             a_p = a_w + a_e + a_n + a_s
 
             Fu[j,i] =  a_w * u[j,i-1] + a_e * u[j,i+1] + a_n * u[j+1,i] + a_s * u[j-1,i] + a_p * u[j,i]
@@ -106,15 +106,15 @@ def conv_diff_v(u, v, Re, mesh):
     for i in range(1, nx):
         for j in range(1,ny):
 
-            u_w = (u[j+1,i-1] + u[j, i-1]) / 2
-            u_e = (u[j+1,i] + u[j, i]) / 2
-            v_n = (v[j+1,i] + v[j, i]) / 2
-            v_s = (v[j,i] + v[j-1, i]) / 2
+            u_w = (u[j+1,i-1] + u[j, i-1]) * 0.5
+            u_e = (u[j+1,i] + u[j, i]) * 0.5
+            v_n = (v[j+1,i] + v[j, i]) * 0.5
+            v_s = (v[j,i] + v[j-1, i]) * 0.5
 
-            a_w = dy * (1 / (Re * dx) + u_w / 2)
-            a_e = dy * (1 / (Re * dx) + u_e / 2)
-            a_n = dx * (1 / (Re * dy) + v_s / 2)
-            a_s = dx * (1 / (Re * dy) + v_n / 2)
+            a_w = dy * (1 / (Re * dx) + u_w * 0.5)
+            a_e = dy * (1 / (Re * dx) - u_e * 0.5)
+            a_n = dx * (1 / (Re * dy) - v_n * 0.5)
+            a_s = dx * (1 / (Re * dy) + v_s * 0.5)
             a_p = a_w + a_e + a_n + a_s
 
             Fv[j,i] =  a_w * v[j,i-1] + a_e * v[j,i+1] + a_n * v[j+1,i] + a_s * v[j-1,i] + a_p * v[j,i]
