@@ -141,20 +141,17 @@ def gradient(p, mesh):
     grad_pu = np.zeros((ny+2, nx+2))
     grad_pv = np.zeros((ny+2, nx+2))
 
-    for i in range(1, nx+1):
-        for j in range(1,ny+1):
-            grad_pu[j,i] = 0.5 * (p[j,i+1] - p[j,i-1]) / dx
-            grad_pv[j,i] = 0.5 * (p[j+1,i] - p[j-1,i]) / dy
+    grad_pu[1:-1,1:-1] = 0.5 * (p[1:-1,2:] - p[1:-1,:-2]) / dx
+    grad_pv[1:-1,1:-1] = 0.5 * (p[2:,1:-1] - p[:-2,1:-1]) / dy
     
     ## Boundary conditions ##
     # U
-    for j in range(ny+2):
-        grad_pu[j,0] = (p[j,1] - p[j,0]) / dx
-        grad_pu[j,nx+1] = (p[j,nx+1] - p[j,nx]) / dx
+    grad_pu[:,0] = (p[:,1] - p[:,0]) / dx
+    grad_pu[:,nx+1] = (p[:,nx+1] - p[:,nx]) / dx
+
     # V
-    for i in range(nx+2):
-        grad_pv[0,i] = (p[1,i] - p[0,i]) / dy
-        grad_pv[ny+1,i] = (p[ny+1,i] - p[ny,i]) / dy
+    grad_pv[0,:] = (p[1,:] - p[0,:]) / dy
+    grad_pv[ny+1,:] = (p[ny+1,:] - p[ny,:]) / dy
 
     return (grad_pu, grad_pv)
 
