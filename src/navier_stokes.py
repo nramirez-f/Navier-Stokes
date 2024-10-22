@@ -53,8 +53,8 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     norm_2_u =  np.sqrt(np.sum((dy * dx * (u**2)).reshape((nx+2) * (ny+2))))
     norm_2_v =  np.sqrt(np.sum((dy * dx * (v**2)).reshape((nx+2) * (ny+2))))
     norm_vel = np.sqrt(norm_2_u**2 + norm_2_v**2)
-    security_factor = 1
-    cfl_top = (dx * dy) / norm_vel
+    security_factor = 0.35
+    cfl_top = dx / norm_vel
     dt = security_factor * cfl_top
     #dt = 5e-3 # dt of mathlab code
 
@@ -69,7 +69,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     relative_norm_error_v = 1
     u_old = u.copy()
     v_old = v.copy()
-    while  (relative_norm_error_v > convergence_criteria):
+    while  (relative_norm_error_v > convergence_criteria and n < max_iterations):
         
         if (n == 1):
             # Intermediate Velocity
