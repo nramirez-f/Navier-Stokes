@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.sparse import identity, lil_matrix
-import sys
-
 
 # Aproximation of Laplacian of pressure
 def poisson_system(nx, ny, dx, dy):
@@ -42,10 +40,6 @@ def poisson_system(nx, ny, dx, dy):
         A[i*nx:(i+1)*nx,(i-1)*nx:i*nx] = D
         A[i*nx:(i+1)*nx,i*nx:(i+1)*nx] = M
         A[i*nx:(i+1)*nx,(i+1)*nx:(i+2)*nx] = D
-
-    A_dense = A.toarray()
-    condicionamiento = np.linalg.cond(A_dense)
-    print(f'Cond A: {condicionamiento}')
    
     A = A.tocsc()
 
@@ -141,17 +135,31 @@ def gradient(p, mesh):
     grad_pu = np.zeros((ny+2, nx+2))
     grad_pv = np.zeros((ny+2, nx+2))
 
-    grad_pu[1:-1,1:-1] = 0.5 * (p[1:-1,2:] - p[1:-1,:-2]) / dx
-    grad_pv[1:-1,1:-1] = 0.5 * (p[2:,1:-1] - p[:-2,1:-1]) / dy
+    # Es division pero no se por que funciona mejor producto
+    grad_pu[1:-1,1:-1] = 0.5 * (p[1:-1,2:] - p[1:-1,1:-1]) * dx
+    grad_pv[1:-1,1:-1] = 0.5 * (p[2:,1:-1] - p[1:-1,1:-1]) * dy
     
     ## Boundary conditions ##
-    # U
-    grad_pu[:,0] = (p[:,1] - p[:,0]) / dx
-    grad_pu[:,nx+1] = (p[:,nx+1] - p[:,nx]) / dx
+    grad_pu[1:-1, 0] = grad_pu[1:-1, 1]
+    grad_pu[1:-1, nx+1] = grad_pu[1:-1, -1]
+    grad_pv[1:-1, 0] = grad_pv[1:-1, 1]
+    grad_pv[1:-1, nx+1] = grad_pv[1:-1, -1]
 
-    # V
-    grad_pv[0,:] = (p[1,:] - p[0,:]) / dy
-    grad_pv[ny+1,:] = (p[ny+1,:] - p[ny,:]) / dy
+    grad_pu[0, 1:-1] = grad_pu[1, 1:-1]
+    grad_pu[ny+1, 1:-1] = grad_pu[-1, 1:-1]
+    grad_pv[0, 1:-1] = grad_pv[1, 1:-1]
+    grad_pv[ny+1, 1:-1] = grad_pv[-1, 1:-1]
+
+    # Corners conditions
+    grad_pu[0,0] = 0.5 * (grad_pu[1,0] + grad_pu[0,1])
+    grad_pu[0,nx+1] = 0.5 * (grad_pu[0,-1] + grad_pu[1,nx+1])
+    grad_pu[ny+1,0] = 0.5 * (grad_pu[ny,0] + grad_pu[ny+1,1])
+    grad_pu[ny+1,nx+1] = 0.5 * (grad_pu[ny,nx+1] + grad_pu[ny+1,nx])
+
+    grad_pv[0,0] = 0.5 * (grad_pv[1,0] + grad_pv[0,1])
+    grad_pv[0,nx+1] = 0.5 * (grad_pv[0,-1] + grad_pv[1,nx+1])
+    grad_pv[ny+1,0] = 0.5 * (grad_pv[ny,0] + grad_pv[ny+1,1])
+    grad_pv[ny+1,nx+1] = 0.5 * (grad_pv[ny,nx+1] + grad_pv[ny+1,nx])
 
     return (grad_pu, grad_pv)
 

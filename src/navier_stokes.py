@@ -6,7 +6,7 @@ from poisson import poisson_2D
 import time
 
 
-def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.ndarray], gv:Callable[[np.ndarray, np.ndarray], np.ndarray],  Re:float, convergence_criteria:float = 5e-6, max_iterations:int = 1000):
+def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.ndarray], gv:Callable[[np.ndarray, np.ndarray], np.ndarray],  Re:float, convergence_criteria:float = 5e-6, max_iterations:int = 100000):
     """
     mesh: Domain of the problem
     gu: Dirichlet boundary conditions for component u
@@ -54,13 +54,18 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     norm_2_v =  np.sqrt(np.sum((dy * dx * (v**2)).reshape((nx+2) * (ny+2))))
     norm_vel = np.sqrt(norm_2_u**2 + norm_2_v**2)
     security_factor = 0.35
-    cfl_top = dx / norm_vel
-    dt = security_factor * cfl_top
-    #dt = 5e-3 # dt of mathlab code
+    dt_top = dx / norm_vel
+    dt = security_factor * dt_top
+    dt = 5e-3 # dt of mathlab code
 
-    ## Plot Initial Conditions ##
-    velocities_contour(mesh, u, v)
-    
+    print('****************************************')
+    print(f'dt: {dt}')
+    print(f'dt Max(CFL): {dt_top}')
+    print(f'dx: {dx}')
+    print(f'dy: {dy}')
+    print(f'Re: {Re}')
+    print('****************************************')
+
     ## Time Iteraion ##
     t = dt
     n = 1
@@ -69,6 +74,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     relative_norm_error_v = 1
     u_old = u.copy()
     v_old = v.copy()
+    
     while  (relative_norm_error_v > convergence_criteria and n < max_iterations):
         
         if (n == 1):
@@ -133,11 +139,6 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
         relative_error_v = np.sqrt(np.sum((dy * dx * np.abs(v - v_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_v
         relative_norm_error_v = (norm_2_v - norm_2_v_old) / norm_2_v
 
-        print(f'## Errors time({t} s) iteration({n}):')
-        print(f'Error on U component: {relative_error_u}')
-        print(f'Error on V component: {relative_error_v}')
-        print(f'Relative Error V: {relative_norm_error_v}')
-
         u_old = u.copy()
         v_old = v.copy()
 
@@ -151,12 +152,14 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
         elif np.any(norm_2_p > 1e6):
             print("P too large!!")
             break
-
-        if (n%500 == 0):
-            variables_contour(mesh, u, v, p, t, n)
         
         if (relative_norm_error_v < convergence_criteria):
             print('Reach to convergence Criteria')
+            variables_contour(mesh, u, v, p, t, n)
+            break
+
+        if (n > max_iterations):
+            print('Reach to max iterations')
             variables_contour(mesh, u, v, p, t, n)
             break
         
