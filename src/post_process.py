@@ -112,7 +112,7 @@ def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: floa
 
     plt.suptitle(f'Approximation at time {t} (n={n})', fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.pause(3)
-    plt.close(fig)
-    #plt.show()
+    #plt.pause(3)
+    #plt.close(fig)
+    plt.show()
 
