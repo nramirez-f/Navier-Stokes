@@ -82,7 +82,7 @@ def conv_diff_u(u, v, Re, mesh):
             a_s = dx * (1 / (Re * dy) + v_s * 0.5)
             a_p = a_w + a_e + a_n + a_s
 
-            Fu[j,i] =  a_w * u[j,i-1] + a_e * u[j,i+1] + a_n * u[j+1,i] + a_s * u[j-1,i] + a_p * u[j,i]
+            Fu[j,i] =  a_w * u[j,i-1] + a_e * u[j,i+1] + a_n * u[j+1,i] + a_s * u[j-1,i] - a_p * u[j,i]
 
     return Fu
 
@@ -117,7 +117,7 @@ def conv_diff_v(u, v, Re, mesh):
             a_s = dx * (1 / (Re * dy) + v_s * 0.5)
             a_p = a_w + a_e + a_n + a_s
 
-            Fv[j,i] =  a_w * v[j,i-1] + a_e * v[j,i+1] + a_n * v[j+1,i] + a_s * v[j-1,i] + a_p * v[j,i]
+            Fv[j,i] =  a_w * v[j,i-1] + a_e * v[j,i+1] + a_n * v[j+1,i] + a_s * v[j-1,i] - a_p * v[j,i]
 
     return Fv
 
