@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.sparse import identity, lil_matrix
+import time
 
 # Aproximation of Laplacian of pressure
 def poisson_system(nx, ny, dx, dy):
@@ -23,8 +24,10 @@ def poisson_system(nx, ny, dx, dy):
     A = lil_matrix((nx*ny,nx*ny), dtype='float64')
 
     # Neumman Conditions (State Duplication)
+    # First Row Blocks
     Ms = lil_matrix((nx,nx), dtype='float64')
     Ms.setdiag(d*np.ones(nx),0)
+    Ms.setdiag(sd*np.ones(nx-1),-1)
     Ms.setdiag(sd*np.ones(nx-1),1)
     A[0:nx,0:nx] = Ms
     A[0:nx,nx:2*nx] = 2 * D
@@ -33,6 +36,7 @@ def poisson_system(nx, ny, dx, dy):
     Mn = lil_matrix((nx,nx), dtype='float64')
     Mn.setdiag(d*np.ones(nx),0)
     Mn.setdiag(sd*np.ones(nx-1),-1)
+    Mn.setdiag(sd*np.ones(nx-1),1)
     A[(ny-1)*nx:ny*nx,(ny-1)*nx:ny*nx] = Mn
     A[(ny-1)*nx:ny*nx,(ny-2)*nx:(ny-1)*nx] = 2 * D
 
@@ -167,7 +171,7 @@ def divergence(u_star, v_star, dx, dy, nx, ny):
     
     result = np.zeros((ny,nx)) 
     
-    result = 0.5 * (dy * (u_star[1:ny+1,1:nx+1] - u_star[1:ny+1,0:nx]) + dx * (v_star[1:ny+1,1:nx+1] - v_star[0:ny,1:nx+1]))
+    result = 0.5 * (dx * dy) * (dy * (u_star[1:-1,2:] - u_star[1:-1,0:-2]) + dx * (v_star[2:,1:-1] - v_star[0:-2,1:-1]))
 
     return  result
 

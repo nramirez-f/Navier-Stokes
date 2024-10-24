@@ -14,6 +14,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     Re: Reynols Number (Note: has to be less than 2300 for laminar regime)
     T: Final time
     """
+    start_time = time.time()
 
     ## Recovery Domain ##
     X,Y = mesh
@@ -53,7 +54,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     norm_2_u =  np.sqrt(np.sum((dy * dx * (u**2)).reshape((nx+2) * (ny+2))))
     norm_2_v =  np.sqrt(np.sum((dy * dx * (v**2)).reshape((nx+2) * (ny+2))))
     norm_vel = np.sqrt(norm_2_u**2 + norm_2_v**2)
-    security_factor = 0.35
+    security_factor = 0.5
     dt_top = dx / norm_vel
     dt = security_factor * dt_top
     dt = 5e-3 # dt of mathlab code
@@ -71,15 +72,14 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
     n = 1
     relative_error_u = 1
     relative_error_v = 1
-    relative_norm_error_v = 1
     u_old = u.copy()
     v_old = v.copy()
     
-    while  (relative_norm_error_v > convergence_criteria and n < max_iterations):
-        
+    while  ((relative_error_v > convergence_criteria or relative_error_u > convergence_criteria) and n < max_iterations):
+
         if (n == 1):
             # Intermediate Velocity
-            u_star, v_star, Fu_old, Fv_old = intermediate_velocity_euler(u_old , v_old, Re, mesh, dt)
+            u_star, v_star, Fu, Fv = intermediate_velocity_euler(u , v, Re, mesh, dt)
 
             # Pressure as Poisson Solution
             p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt)
@@ -105,7 +105,7 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
 
         else:
             # Intermediate Velocity
-            u_star, v_star, Fu_old, Fv_old = intermediate_velocity_adamsB(u , v, Re, mesh, Fu_old, Fv_old, dt)
+            u_star, v_star, Fu, Fv = intermediate_velocity_adamsB(u , v, Re, mesh, Fu_old, Fv_old, dt)
 
             # Pressure as Poisson Solution
             p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt)
@@ -133,16 +133,17 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
         norm_2_u =  np.sqrt(np.sum((dy * dx * u**2).reshape((nx+2) * (ny+2))))
         norm_2_v =  np.sqrt(np.sum((dy * dx * v**2).reshape((nx+2) * (ny+2))))
         norm_2_p =  np.sqrt(np.sum((dy * dx * p**2).reshape((nx+2) * (ny+2))))
-        norm_2_v_old =  np.sqrt(np.sum((dy * dx * v_old**2).reshape((nx+2) * (ny+2))))
 
         relative_error_u = np.sqrt(np.sum((dy * dx * np.abs(u - u_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_u
         relative_error_v = np.sqrt(np.sum((dy * dx * np.abs(v - v_old)**2).reshape((nx+2) * (ny+2)))) / norm_2_v
-        relative_norm_error_v = (norm_2_v - norm_2_v_old) / norm_2_v
 
+        ## Update
         u_old = u.copy()
         v_old = v.copy()
+        Fu_old = Fu.copy()
+        Fv_old = Fv.copy()
 
-        # Manage high values
+        ## Manage stops conditions
         if np.any(norm_2_u > 1e6):
             print("U too large!!")
             break
@@ -153,16 +154,23 @@ def navier_stokes_2D(mesh:np.ndarray, gu:Callable[[np.ndarray, np.ndarray], np.n
             print("P too large!!")
             break
         
-        if (relative_norm_error_v < convergence_criteria):
+        if (relative_error_v < convergence_criteria and relative_error_u < convergence_criteria):
             print('Reach to convergence Criteria')
-            variables_contour(mesh, u, v, p, t, n)
             break
 
         if (n > max_iterations):
             print('Reach to max iterations')
-            variables_contour(mesh, u, v, p, t, n)
             break
         
         t += dt
         n += 1
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    hours, remainder = divmod(total_time, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    print(f"Total time: {int(hours)} horas, {int(minutes)} minutos, {seconds:.2f} segundos.")
+
+    variables_contour(mesh, u, v, p, t, n)
+
     
