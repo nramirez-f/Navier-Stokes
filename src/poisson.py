@@ -9,7 +9,7 @@ def poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt):
     """
     """
     #Second Member (Divergence of Intermediate Velocities)
-    b = divergence(u_star, v_star, dx, dy, nx, ny) / dt
+    b = (dx * dy) * divergence(u_star, v_star, dx, dy, nx, ny) / dt
     
     n = int(nx * ny)
     b = b.reshape(n)

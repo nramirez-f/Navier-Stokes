@@ -171,7 +171,7 @@ def divergence(u_star, v_star, dx, dy, nx, ny):
     
     result = np.zeros((ny,nx)) 
     
-    result = 0.5 * (dx * dy) * (dy * (u_star[1:-1,2:] - u_star[1:-1,0:-2]) + dx * (v_star[2:,1:-1] - v_star[0:-2,1:-1]))
+    result = 0.5 * (dy * (u_star[1:-1,2:] - u_star[1:-1,0:-2]) + dx * (v_star[2:,1:-1] - v_star[0:-2,1:-1]))
 
     return  result
 
