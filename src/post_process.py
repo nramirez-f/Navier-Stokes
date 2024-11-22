@@ -82,9 +82,13 @@ def pressure_contour(mesh, p:np.ndarray):
     plt.pause(5)
     plt.close('All')
 
-def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float, n:int):
+def variables_contour(dx, dy, nx, ny, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float, n:int):
     """
     """
+
+    x = np.linspace(0-dx, 1+dx, nx+2)
+    y = np.linspace(0-dy, 1+dy, ny+2)
+    mesh = np.meshgrid(x,y)
     X, Y = mesh
     
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
@@ -116,3 +120,21 @@ def variables_contour(mesh, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: floa
     #plt.close(fig)
     plt.show()
 
+def mesh_to_txt(u, v, p, n):
+    """
+    """
+    directory = 'iterations' 
+    with open(f'{directory}/U_n{n}.txt', 'w') as f:
+        for row in u:
+            row_string = '\t'.join(f'{val:.6f}' for val in row)
+            f.write(row_string + '\n')
+    
+    with open(f'{directory}/V_n{n}.txt', 'w') as f:
+        for row in v:
+            row_string = '\t'.join(f'{val:.6f}' for val in row)
+            f.write(row_string + '\n')
+
+    with open(f'{directory}/P_n{n}.txt', 'w') as f:
+        for row in p:
+            row_string = '\t'.join(f'{val:.6f}' for val in row)
+            f.write(row_string + '\n')
