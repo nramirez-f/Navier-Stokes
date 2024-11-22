@@ -4,7 +4,7 @@ import time
 from scipy.sparse.linalg import splu
 
 # Aproximation of Laplacian of pressure
-def poisson_system(nx, ny, dx, dy):
+def poisson_system(nx, ny, dx, dy, bicgstab_flag):
 
     # Coefficients
     aX = dy / dx
@@ -47,9 +47,10 @@ def poisson_system(nx, ny, dx, dy):
 
     A = A.tocsc()
 
-    LU = splu(A)
+    if bicgstab_flag != 1:
+        A = splu(A)
 
-    return LU
+    return A
 
 # Aproximation of F(u)
 def conv_diff_u(u, v, Re, nx, ny, dx, dy):

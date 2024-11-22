@@ -9,7 +9,7 @@ import pyvista as pv
 import os
 
 
-def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence_criteria:float = 5e-6, max_iterations:int = 100000):
+def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 1, save:int = 0, convergence_criteria:float = 5e-6, max_iterations:int = 100000):
     """
     mesh: Domain of the problem
     gu: Dirichlet boundary conditions for component u
@@ -59,7 +59,7 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence
     v[ny+1, :] = 0
 
     ## Calculate the matrix of the poisson problem
-    LU = poisson_system(nx, ny, dx, dy)
+    A = poisson_system(nx, ny, dx, dy, bicgstab_flag)
 
     ## Calculate of dt (CFL Condition) ##
     """ norm_2_u =  np.sqrt(np.sum((dy * dx * (u**2)).reshape((nx+2) * (ny+2))))
@@ -94,6 +94,8 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence
     u_0 = u.copy()
     v_0 = v.copy()
     
+    mesh_to_txt(u, v, p, 0)
+
     while  (error_v > convergence_criteria):
 
         if (n == 1):
@@ -101,7 +103,7 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence
             u_star, v_star, Fu, Fv = intermediate_velocity_euler(u , v, Re, nx, ny, dx, dy, dt)
 
             # Pressure as Poisson Solution
-            p = poisson_2D(nx, ny, LU, u_star, v_star, p, dx, dy, dt)
+            p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt, bicgstab_flag)
 
             # Correction of Intermediate Velocity
             grad_pu, grad_pv = gradient(p, nx, ny, dx, dy)
@@ -127,7 +129,7 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence
             u_star, v_star, Fu, Fv = intermediate_velocity_adamsB(u , v, Re, nx, ny, dx, dy, Fu_0, Fv_0, dt)
 
             # Pressure as Poisson Solution
-            p = poisson_2D(nx, ny, LU, u_star, v_star, p, dx, dy, dt)
+            p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt, bicgstab_flag)
 
             # Correction of Intermediate Velocity
             grad_pu, grad_pv = gradient(p, nx, ny, dx, dy)
@@ -189,7 +191,10 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, save:int = 0, convergence
         if (n > max_iterations):
             print('Reach to max iterations')
             break
-
+        
+        if  n < 2:
+            mesh_to_txt(u, v, p, n)
+            
         t += dt
         n += 1
 

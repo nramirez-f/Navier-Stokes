@@ -5,7 +5,7 @@ from post_process import *
 from aprox_spacial import *
 from scipy.sparse.linalg import bicgstab
 
-def poisson_2D(nx, ny, LU, u_star, v_star, p, dx, dy, dt):
+def poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt, bicgstab_flag):
     """
     """
     #Second Member (Divergence of Intermediate Velocities)
@@ -14,8 +14,10 @@ def poisson_2D(nx, ny, LU, u_star, v_star, p, dx, dy, dt):
     b = b.reshape(nx * ny)
 
     # Resolution on Interior Nodes
-    p_star = LU.solve(b)
-    #p_star, flag = bicgstab(A, b, rtol=0.001, maxiter=3000)
+    if bicgstab_flag == 1:
+        p_star, info_flag = bicgstab(A, b, rtol=0.001, maxiter=3000)
+    else:
+        p_star = A.solve(b)
 
     p_star = p_star.reshape((ny,nx))
 
