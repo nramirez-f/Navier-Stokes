@@ -119,8 +119,8 @@ def gradient(p, nx, ny, dx, dy):
     grad_pu = np.zeros((ny+2, nx+2))
     grad_pv = np.zeros((ny+2, nx+2))
 
-    grad_pu[:,1:] = 0.5 * (p[:,1:] - p[:,:-1]) * dy
-    grad_pv[1:,:] = 0.5 * (p[1:,:] - p[:-1,:]) * dx
+    grad_pu[:,:-1] = 0.5 * (p[:,1:] - p[:,:-1]) * dy
+    grad_pv[:-1,:] = 0.5 * (p[1:,:] - p[:-1,:]) * dx
 
     return (grad_pu, grad_pv)
 

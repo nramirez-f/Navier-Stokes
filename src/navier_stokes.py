@@ -9,7 +9,7 @@ import pyvista as pv
 import os
 
 
-def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 1, save:int = 0, convergence_criteria:float = 5e-6, max_iterations:int = 100000):
+def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 0, save:int = 0, convergence_criteria:float = 5e-6, max_iterations:int = 200000):
     """
     mesh: Domain of the problem
     gu: Dirichlet boundary conditions for component u
@@ -96,11 +96,11 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 1, save:i
     
     mesh_to_txt(u, v, p, 0)
 
-    while  (error_v > convergence_criteria):
+    while  (error_v > convergence_criteria and n < max_iterations):
 
         if (n == 1):
             # Intermediate Velocity
-            u_star, v_star, Fu, Fv = intermediate_velocity_euler(u , v, Re, nx, ny, dx, dy, dt)
+            u_star, v_star, Fu, Fv = intermediate_velocity_euler(u, v, Re, nx, ny, dx, dy, dt)
 
             # Pressure as Poisson Solution
             p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt, bicgstab_flag)
@@ -126,7 +126,7 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 1, save:i
 
         else:
             # Intermediate Velocity
-            u_star, v_star, Fu, Fv = intermediate_velocity_adamsB(u , v, Re, nx, ny, dx, dy, Fu_0, Fv_0, dt)
+            u_star, v_star, Fu, Fv = intermediate_velocity_adamsB(u, v, Re, nx, ny, dx, dy, Fu_0, Fv_0, dt)
 
             # Pressure as Poisson Solution
             p = poisson_2D(nx, ny, A, u_star, v_star, p, dx, dy, dt, bicgstab_flag)
@@ -206,6 +206,6 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, bicgstab_flag = 1, save:i
     print(f"Total time: {int(hours)} horas, {int(minutes)} minutos, {seconds:.2f} segundos.")
 
     if save != 1:
-        variables_contour(dx, dy, nx, ny, u, v, p, t, n)
+        variables_contour(dx, dy, nx, ny, u, v, p, t, n-1)
 
     
