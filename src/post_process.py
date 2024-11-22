@@ -82,10 +82,9 @@ def pressure_contour(mesh, p:np.ndarray):
     plt.pause(5)
     plt.close('All')
 
-def variables_contour(dx, dy, nx, ny, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float, n:int):
+def variables_contour(dx, dy, nx, ny, u: np.ndarray, v: np.ndarray, p: np.ndarray, t: float, n:int, title:str, save_path:str):
     """
     """
-
     x = np.linspace(0-dx, 1+dx, nx+2)
     y = np.linspace(0-dy, 1+dy, ny+2)
     mesh = np.meshgrid(x,y)
@@ -114,11 +113,9 @@ def variables_contour(dx, dy, nx, ny, u: np.ndarray, v: np.ndarray, p: np.ndarra
     axes[2].set_ylabel('Y')
     fig.colorbar(contour3, ax=axes[2])
 
-    plt.suptitle(f'Approximation at time {t} (n={n})', fontsize=16)
+    plt.suptitle(title, fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    #plt.pause(3)
-    #plt.close(fig)
-    plt.show()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
 def mesh_to_txt(u, v, p, n):
     """

@@ -11,14 +11,14 @@ x0 = 0
 xf = 1
 
 # volumes in axis X
-nx = 10
+nx = 8
 
 # Interval in axis Y
 y0 = 0
 yf = 1
 
 # volumes in axis Y
-ny = 10
+ny = 8
 
 ## Phisical Variables ##
 
@@ -33,4 +33,4 @@ L = 1
 # Reynols Number
 Re = 100
 
-navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re)
+navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re, 'Driven-Cavity')
