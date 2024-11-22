@@ -58,27 +58,17 @@ def conv_diff_u(u, v, Re, nx, ny, dx, dy):
     # Output
     Fu = np.zeros((ny+2, nx+2))
 
-    # Auxiliar matrixes
-    a_w = np.zeros((ny+2,nx+1))
-    a_e = np.zeros((ny+2,nx+1))
-    a_n = np.zeros((ny+2,nx+1))
-    a_s = np.zeros((ny+2,nx+1))
-    a_p = np.zeros((ny+2,nx+1))
-
     for j in range(1, ny+1):
         for i in range(1, nx):
 
-            a_w[j,i] = dy * (1 / (Re * dx) + 0.25 * (u[j,i] + u[j, i-1]))
-            a_e[j,i] = dy * (1 / (Re * dx) - 0.25 * (u[j,i+1] + u[j, i]))
-            a_n[j,i] = dx * (1 / (Re * dy) - 0.25 * (v[j,i+1] + v[j, i]))
-            a_s[j,i] = dx * (1 / (Re * dy) + 0.25 * (v[j-1,i+1] + v[j-1, i]))
+            a_w = dy * (1 / (Re * dx) + 0.25 * (u[j,i] + u[j, i-1]))
+            a_e = dy * (1 / (Re * dx) - 0.25 * (u[j,i+1] + u[j, i]))
+            a_n = dx * (1 / (Re * dy) - 0.25 * (v[j,i+1] + v[j, i]))
+            a_s = dx * (1 / (Re * dy) + 0.25 * (v[j-1,i+1] + v[j-1, i]))
 
-    a_p = a_w + a_e + a_n + a_s
+            a_p = a_w + a_e + a_n + a_s
 
-    for j in range(1, ny+1):
-        for i in range(1, nx):
-
-            Fu[j,i] =  a_w[j,i] * u[j,i-1] + a_e[j,i] * u[j,i+1] + a_n[j,i] * u[j+1,i] + a_s[j,i] * u[j-1,i] - a_p[j,i] * u[j,i]
+            Fu[j,i] =  a_w * u[j,i-1] + a_e * u[j,i+1] + a_n * u[j+1,i] + a_s * u[j-1,i] - a_p * u[j,i]
 
     return Fu
 
@@ -88,27 +78,17 @@ def conv_diff_v(u, v, Re, nx, ny, dx, dy):
     # Output
     Fv = np.zeros((ny+2, nx+2))
 
-    # Auxiliar matrixes
-    a_w = np.zeros((ny+1,nx+2))
-    a_e = np.zeros((ny+1,nx+2))
-    a_n = np.zeros((ny+1,nx+2))
-    a_s = np.zeros((ny+1,nx+2))
-    a_p = np.zeros((ny+1,nx+2))
-
     for j in range(1,ny):
         for i in range(1, nx):
 
-            a_w[j,i]  = dy * (1 / (Re * dx) + 0.25 * (u[j+1,i-1] + u[j, i-1]))
-            a_e[j,i]  = dy * (1 / (Re * dx) - 0.25 * (u[j+1,i] + u[j, i]))
-            a_n[j,i]  = dx * (1 / (Re * dy) - 0.25 * (v[j+1,i] + v[j, i]))
-            a_s[j,i]  = dx * (1 / (Re * dy) + 0.25 * (v[j,i] + v[j-1, i]))
+            a_w = dy * (1 / (Re * dx) + 0.25 * (u[j+1,i-1] + u[j, i-1]))
+            a_e = dy * (1 / (Re * dx) - 0.25 * (u[j+1,i] + u[j, i]))
+            a_n = dx * (1 / (Re * dy) - 0.25 * (v[j+1,i] + v[j, i]))
+            a_s = dx * (1 / (Re * dy) + 0.25 * (v[j,i] + v[j-1, i]))
 
-    a_p = a_w + a_e + a_n + a_s
+            a_p = a_w + a_e + a_n + a_s
 
-    for j in range(1,ny):
-        for i in range(1, nx):
-
-            Fv[j,i] =  a_w[j,i] * v[j,i-1] + a_e[j,i] * v[j,i+1] + a_n[j,i] * v[j+1,i] + a_s[j,i] * v[j-1,i] - a_p[j,i] * v[j,i]
+            Fv[j,i] =  a_w * v[j,i-1] + a_e * v[j,i+1] + a_n * v[j+1,i] + a_s * v[j-1,i] - a_p * v[j,i]
 
     return Fv
 
@@ -122,7 +102,7 @@ def gradient(p, nx, ny, dx, dy):
     grad_pu[:,:-1] = 0.5 * (p[:,1:] - p[:,:-1]) * dy
     grad_pv[:-1,:] = 0.5 * (p[1:,:] - p[:-1,:]) * dx
 
-    # Guarantee neumann pressure conditions
+    # Neumann pressure conditions
     grad_pu[0,:] = 0
     grad_pu[ny+1,:] = 0
     grad_pu[:,0] = 0
@@ -137,9 +117,7 @@ def gradient(p, nx, ny, dx, dy):
 
 def divergence(u_star, v_star, dx, dy, nx, ny):
     
-    result = np.zeros((ny,nx)) 
-    
-    result = 0.5 * (dy * (u_star[1:ny+1,1:nx+1] - u_star[1:ny+1,0:nx]) + dx * (v_star[1:ny+1,1:nx+1] - v_star[0:ny,1:nx+1]))
+    result = 0.5 * (dy * (u_star[1:-1,1:-1] - u_star[1:-1,0:-2]) + dx * (v_star[1:-1,1:-1] - v_star[0:-2,1:-1]))
 
     return  result
 
