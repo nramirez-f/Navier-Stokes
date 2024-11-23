@@ -102,17 +102,6 @@ def gradient(p, nx, ny, dx, dy):
     grad_pu[:,:-1] = 0.5 * (p[:,1:] - p[:,:-1]) * dy
     grad_pv[:-1,:] = 0.5 * (p[1:,:] - p[:-1,:]) * dx
 
-    # Neumann pressure conditions
-    grad_pu[0,:] = 0
-    grad_pu[ny+1,:] = 0
-    grad_pu[:,0] = 0
-    grad_pu[:,nx+1] = 0
-
-    grad_pv[0,:] = 0
-    grad_pv[ny+1,:] = 0
-    grad_pv[:,0] = 0
-    grad_pv[:,nx+1] = 0
-
     return (grad_pu, grad_pv)
 
 def divergence(u_star, v_star, dx, dy, nx, ny):
