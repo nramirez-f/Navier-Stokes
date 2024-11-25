@@ -1,49 +1,62 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from typing import Callable
 from aprox_temporal import *
-from post_process import *
+from plot_graphs import *
 from poisson import poisson_2D
 import time
 from datetime import datetime
-import pyvista as pv
 import os
 from colorama import Fore, Style
 
 
-def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, simulation_name:str, convergence_criteria:float=5e-6,
-                      bicgstab_flag:int = 0, bicgstab_rtol:float = 0.001, bicgstab_atol:float = 0, bicgstab_maxiter:int=3000,
-                      sns_step:int=1000, max_iterations:int = 200000):
+def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:float, simulation_name:str,
+                     security_factor:float=0, dt:float = 0, convergence_criteria:float=5e-6,
+                     bicgstab_flag:int = 0, bicgstab_rtol:float = 0.001, bicgstab_atol:float = 0, bicgstab_maxiter:int=3000,
+                     sns_step:int=1000, max_iterations:int = 200000):
     """
-    mesh: Domain of the problem
-    gu: Dirichlet boundary conditions for component u
-    gv: Dirichlet boundary conditions for component v
-    Re: Reynols Number (Note: has to be less than 2300 for laminar regime)
-    T: Final time
+    Simulates the 2D Navier-Stokes equations for incompressible fluid flow within a bounded domain.
+
+    Parameters:
+    - x0, xf (float): Start and end coordinates of the domain in the x direction.
+    - y0, yf (float): Start and end coordinates of the domain in the y direction.
+    - nx, ny (int): Number of volumes in the x and y directions, respectively.
+    - Re (float): Reynolds number, governing the flow's inertial and viscous forces.
+    - simulation_name (str): Name for the simulation; used to organize output files.
+    - security_factor (float, optional): Safety factor for calculating the time step. Defaults to 0.
+    - dt (float, optional): Time step for the simulation. If <= 0, CFL condition determines dt.
+    - convergence_criteria (float, optional): Relative error threshold for stopping. Defaults to 5e-6.
+    - bicgstab_flag (int, optional): If 1, solves the Poisson equation using BiCGSTAB; else uses LU. Defaults to 0.
+    - bicgstab_rtol (float, optional): Relative tolerance for BiCGSTAB. Defaults to 0.001.
+    - bicgstab_atol (float, optional): Absolute tolerance for BiCGSTAB. Defaults to 0.
+    - bicgstab_maxiter (int, optional): Maximum iterations for BiCGSTAB. Defaults to 3000.
+    - sns_step (int, optional): Number of iterations between saving snapshots. Defaults to 1000.
+    - max_iterations (int, optional): Maximum allowed iterations for the simulation. Defaults to 200000.
+
+    This function:
+    1. Initializes the velocity (`u`, `v`) and pressure (`p`) fields with Dirichlet boundary conditions.
+    2. Solves the Navier-Stokes equations iteratively using temporal approximations and the Poisson equation.
+    3. Dynamically updates the velocity and pressure fields until convergence criteria are met or maximum iterations are reached.
+    4. Saves simulation snapshots at regular intervals and generates final contour and field plots of the steady-state or last iteration.
+    5. Handles errors such as divergence in velocity or pressure and logs simulation progress and results.
+
+    Output:
+    - Simulation data and snapshots are saved in a directory named after the simulation.
+    - Results include velocity and pressure field plots, simulation info, and total execution time.
     """
     start_time = time.time()
     os.makedirs('simulations', exist_ok=True)
-    current_time = datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+    current_time = datetime.now().strftime("%d%m%Y%H%M%S")
     simulation_dir = f'simulations/{simulation_name}_{current_time}'
-    vtk_dir = f'{simulation_dir}/vtk'
     simulation_info_file = f'{simulation_dir}/info.txt'
+    snapshots_dir = f'{simulation_dir}/snapshots'
     os.makedirs(simulation_dir, exist_ok=True)
-    os.makedirs(vtk_dir, exist_ok=True)
+    os.makedirs(snapshots_dir, exist_ok=True)
 
     # Hinges
     dx = (xf - x0) / nx
     dy = (yf - y0) / ny
-    
-    ## Pyvista Configuration ##
-    grid = pv.StructuredGrid()
-    x = np.linspace(0-dx, 1+dx, nx+2)
-    y = np.linspace(0-dy, 1+dy, ny+2)
-    mesh = np.meshgrid(x,y)
-    X, Y = mesh
-    grid.points = np.c_[X.ravel(), Y.ravel(), np.zeros((ny+2) * (nx+2))]
-    grid.dimensions = [ny+2, nx+2, 1]  
-
+     
     ## Variables ##
     # Initial Velocity Components (suppose flow is rest)
     u = np.zeros((ny+2, nx+2))
@@ -64,23 +77,30 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, simulation_name:str, conv
     u[ny+1, :] = 1
     v[ny+1, :] = 0
 
+    ## Save Initial Conditions ##
+    np.save(f"{snapshots_dir}/u_sns_{0}.npy", u)
+    np.save(f"{snapshots_dir}/v_sns_{0}.npy", v)
+    np.save(f"{snapshots_dir}/p_sns_{0}.npy", p)
+
     ## Calculate the matrix of the poisson problem
     A = poisson_system(nx, ny, dx, dy, bicgstab_flag)
 
-    ## Calculate of dt (CFL Condition) ##
-    """ norm_2_u =  np.sqrt(np.sum((dy * dx * (u**2)).reshape((nx+2) * (ny+2))))
-    norm_2_v =  np.sqrt(np.sum((dy * dx * (v**2)).reshape((nx+2) * (ny+2))))
-    norm_vel = np.sqrt(norm_2_u**2 + norm_2_v**2)
-    security_factor = 0.5
-    dt_top = dx / norm_vel
-    dt = security_factor * dt_top """
-    dt = 5e-3
+    norm_u =  np.linalg.norm(u)
+    #  Time Step by CFL condition
+    if (dt <= 0):
+        dt_top = dx / norm_u
+        if (security_factor <= 0):
+            security_factor = 1
+        dt = security_factor * dt_top
 
+    # Simulation Info
     if bicgstab_flag == 1:
         laplacian_pressure_solver = f'Bicgstab (rtol={bicgstab_rtol}, atol={bicgstab_atol}, maxiter={bicgstab_maxiter})'
     else:
         laplacian_pressure_solver = 'LU'
-    simulation_info = f'*** Navier-Stokes 2D Simulation ***\n\nSimulation Name: {simulation_name}\nTime Step: {dt}\nVolumes in x-Axis: {nx}\nVolumes in y-Axis: {ny}\nReynols Number: {Re}\nConvergence Criteria: {convergence_criteria}\nMax Iterations: {max_iterations}\nLaplacian Pressure Solver: {laplacian_pressure_solver}'
+
+    simulation_info = f'*** Navier-Stokes 2D Simulation ***\n\nSimulation Name: {simulation_name}\nTime Step: {dt}\nVolumes in x-Axis: {nx}\nVolumes in y-Axis: {ny}\nReynols Number: {Re}\nConvergence Criteria: {convergence_criteria}\nMax Iterations: {max_iterations}\nLaplacian Pressure Solver: {laplacian_pressure_solver}\nSnapshot Step: {sns_step}'
+    
     with open(simulation_info_file, 'w') as file:
         file.write(simulation_info)
     
@@ -158,14 +178,6 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, simulation_name:str, conv
         error_v = np.linalg.norm(v - v_0) / norm_v
         error_p = np.linalg.norm(p - p_0) / norm_p
 
-        ## Generate files with Pyvista ## 
-        if (n % sns_step == 0):
-            grid["velocity"] = np.c_[u.ravel(), v.ravel(), np.zeros((ny+2) * (nx+2))]
-            grid["pressure"] = p.ravel()
-
-            filename = f"{vtk_dir}/n_{n:06d}.vtk"
-            grid.save(filename)
-
         ## Update
         u_0 = u.copy()
         v_0 = v.copy()
@@ -174,12 +186,18 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, simulation_name:str, conv
         Fv_0 = Fv.copy()
 
         ## Info of progress
-        if (n % 1000 == 0):
+        if (n % sns_step == 0):
             percentage = n / max_iterations
             bar_length = 30
             filled_length = int(bar_length * percentage)
             bar = bar = f"{Fore.GREEN}{'█' * filled_length}{Style.RESET_ALL}{'░' * (bar_length - filled_length)}"
             print(f"\rIterations: [{bar}] {n} / {max_iterations} Time: {t:.2f}s Rel_Err_U: {error_u:.10f} Relative Err_V: {error_v:.10f} ", end="", flush=True)
+
+            ## Save iteration ##
+            sns_n = n // sns_step
+            np.save(f"{snapshots_dir}/u_sns_{sns_n}.npy", u)
+            np.save(f"{snapshots_dir}/v_sns_{sns_n}.npy", v)
+            np.save(f"{snapshots_dir}/p_sns_{sns_n}.npy", p)
 
         ## Manage stops conditions on error
         if np.any(norm_u > 1e6):
@@ -203,41 +221,28 @@ def navier_stokes_2D(x0, xf, nx, y0, yf, ny, Re:float, simulation_name:str, conv
         
         if (error_v < convergence_criteria and error_u < convergence_criteria):
             # Info
-            info_message = f'\nReach to Convergence Criteria (Rel_Err_U: {error_u}, Rel_Err_V: {error_v})'
+            info_message = f'\nReach to Convergence Criteria (Rel_Err_U: {error_u}, Rel_Err_V: {error_v}, Rel_Err_P: {error_p})'
             with open(simulation_info_file, 'a') as file:
                 file.write(info_message + '\n')
             print(f'\n{info_message}')
 
-
-            # Save vtk
-            grid["velocity"] = np.c_[u.ravel(), v.ravel(), np.zeros((ny+2) * (nx+2))]
-            grid["pressure"] = p.ravel()
-
-            filename = f"{vtk_dir}/n_{n:06d}.vtk"
-            grid.save(filename)
-
             # Image
-            variables_contour(dx, dy, nx, ny, u, v, p, t, n, f'Steady State t = {t:.2f}s n = {n}', f'{simulation_dir}/steady_state.png')
+            plot_contour(dx, dy, nx, ny, u, v, p, f'Steady State t = {t:.2f}s n = {n}', f'{simulation_dir}/steady_state_contour.png')
+            plot_field(dx, dy, nx, ny, u, v, p, f'Steady State t = {t:.2f}s n = {n}', f'{simulation_dir}/steady_state_field.png')
             break
         
         n += 1
         
         if (n > max_iterations):
             # Info
-            info_message = '\nReach to Convergence Criteria'
+            info_message = f'\nReach to Max iterations (Rel_Err_U: {error_u}, Rel_Err_V: {error_v}, Rel_Err_P: {error_p})'
             with open(simulation_info_file, 'a') as file:
                 file.write(info_message + '\n')
             print(f'\n{info_message}')
-            
-            # Save vtk
-            grid["velocity"] = np.c_[u.ravel(), v.ravel(), np.zeros((ny+2) * (nx+2))]
-            grid["pressure"] = p.ravel()
-
-            filename = f"{vtk_dir}/n_{n:06d}.vtk"
-            grid.save(filename)
 
             # Image
-            variables_contour(dx, dy, nx, ny, u, v, p, t, n, f'Last Iteration t = {t:.2f}s n = {n}', f'{simulation_dir}/last_iteration.png')
+            plot_contour(dx, dy, nx, ny, u, v, p, f'Last Iteration t = {t:.2f}s n = {n}', f'{simulation_dir}/last_iteration_contour.png')
+            plot_field(dx, dy, nx, ny, u, v, p, f'Last Iteration t = {t:.2f}s n = {n}', f'{simulation_dir}/last_iteration_field.png')
             break
             
         t += dt

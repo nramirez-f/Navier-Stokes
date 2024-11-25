@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from aprox_spacial import *
 
 def intermediate_velocity_euler(u , v, Re, nx, ny, dx, dy, dt):

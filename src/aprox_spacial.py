@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 from scipy.sparse import identity, lil_matrix
 import time

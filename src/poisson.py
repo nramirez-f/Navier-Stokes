@@ -1,7 +1,6 @@
-from typing import Callable
-import numpy as np
-from scipy.sparse import identity, lil_matrix
-from post_process import *
+# -*- coding: utf-8 -*-
+
+from plot_graphs import *
 from aprox_spacial import *
 from scipy.sparse.linalg import bicgstab
 
