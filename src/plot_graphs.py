@@ -3,35 +3,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_contour(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarray, p: np.ndarray, title:str, save_path:str):
+def plot_contour(dx: float, dy: float, nx: int, ny: int, u: np.ndarray, v: np.ndarray, p: np.ndarray, title: str, save_path: str):
     """
-    Generates a contour plot for the velocity components (u, v) and pressure (p) fields.
-
-    Parameters:
-    - dx, dy (float): Grid spacing in the x and y directions, respectively.
-    - nx, ny (int): Number of grid points in the x and y directions.
-    - u, v (np.ndarray): Velocity field components in the x and y directions.
-    - p (np.ndarray): Pressure field values.
-    - title (str): Title for the entire figure.
-    - save_path (str): Path to save the generated plot as an image file.
-
-    This function creates a subplot with three panels:
-    1. Contour plot of the `u` velocity field.
-    2. Contour plot of the `v` velocity field.
-    3. Contour plot of the pressure field `p`.
-
-    Each panel includes axis labels, titles, and a color bar for clarity. The final figure
-    is saved as a high-resolution image at the specified path.
+    Generates a contour plot for the velocity components (u, v) and pressure (p) fields,
+    including level lines with labeled values.
     """
-    x = np.linspace(0-dx, 1+dx, nx+2)
-    y = np.linspace(0-dy, 1+dy, ny+2)
-    mesh = np.meshgrid(x,y)
+    x = np.linspace(0 - dx, 1 + dx, nx + 2)
+    y = np.linspace(0 - dy, 1 + dy, ny + 2)
+    mesh = np.meshgrid(x, y)
     X, Y = mesh
-    
+
     fig, axes = plt.subplots(1, 3, figsize=(30, 10))
 
     # Plot U
-    contour1 = axes[0].contourf(X, Y, u, cmap='viridis')
+    contour1 = axes[0].contourf(X, Y, u, cmap='viridis')  # Filled contours
+    level_lines_u = axes[0].contour(X, Y, u, colors='black', linewidths=0.5)  # Line contours
+    axes[0].clabel(level_lines_u, inline=True, fmt='%.2f', fontsize=8)  # Label lines
     axes[0].set_title('U')
     axes[0].set_xlabel('X')
     axes[0].set_ylabel('Y')
@@ -39,6 +26,8 @@ def plot_contour(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarra
 
     # Plot V
     contour2 = axes[1].contourf(X, Y, v, cmap='viridis')
+    level_lines_v = axes[1].contour(X, Y, v, colors='black', linewidths=0.5)
+    axes[1].clabel(level_lines_v, inline=True, fmt='%.2f', fontsize=8)
     axes[1].set_title('V')
     axes[1].set_xlabel('X')
     axes[1].set_ylabel('Y')
@@ -46,6 +35,8 @@ def plot_contour(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarra
 
     # Plot P
     contour3 = axes[2].contourf(X, Y, p, cmap='viridis')
+    level_lines_p = axes[2].contour(X, Y, p, colors='black', linewidths=0.5)
+    axes[2].clabel(level_lines_p, inline=True, fmt='%.2f', fontsize=8)
     axes[2].set_title('P')
     axes[2].set_xlabel('X')
     axes[2].set_ylabel('Y')
@@ -54,6 +45,7 @@ def plot_contour(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarra
     plt.suptitle(title, fontsize=16)
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
 
 def plot_field(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarray, p: np.ndarray, title: str, save_path: str):
@@ -88,8 +80,8 @@ def plot_field(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarray,
     norm = np.sqrt(u**2 + v**2)
 
     ax.quiver(
-        X, Y,
-        u, v,
+        X[1:-1], Y[1:-1],
+        u[1:-1], v[1:-1],
         color='white', 
         scale=None,
         scale_units='xy',
@@ -106,6 +98,3 @@ def plot_field(dx:float, dy:float, nx:int, ny:int, u: np.ndarray, v: np.ndarray,
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
-
-import numpy as np
-import matplotlib.pyplot as plt

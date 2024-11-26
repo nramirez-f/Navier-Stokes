@@ -10,10 +10,10 @@ import os
 from colorama import Fore, Style
 
 
-def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:float, simulation_name:str,
-                     security_factor:float=0, dt:float = 0, convergence_criteria:float=5e-6,
-                     bicgstab_flag:int = 0, bicgstab_rtol:float = 0.001, bicgstab_atol:float = 0, bicgstab_maxiter:int=3000,
-                     sns_step:int=1000, max_iterations:int = 200000):
+def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:float, nu:float, simulation_name:str,
+                     security_factor:float=0, dt:float = 0,
+                     convergence_criteria:float=5e-6, max_iterations:int = 200000, sns_flag = 0, sns_step:int=1000,
+                     bicgstab_flag:int = 0, bicgstab_rtol:float = 0.001, bicgstab_atol:float = 0, bicgstab_maxiter:int=3000):
     """
     Simulates the 2D Navier-Stokes equations for incompressible fluid flow within a bounded domain.
 
@@ -22,6 +22,7 @@ def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:
     - y0, yf (float): Start and end coordinates of the domain in the y direction.
     - nx, ny (int): Number of volumes in the x and y directions, respectively.
     - Re (float): Reynolds number, governing the flow's inertial and viscous forces.
+    - nu (float): Dinamic viscosity.
     - simulation_name (str): Name for the simulation; used to organize output files.
     - security_factor (float, optional): Safety factor for calculating the time step. Defaults to 0.
     - dt (float, optional): Time step for the simulation. If <= 0, CFL condition determines dt.
@@ -78,9 +79,10 @@ def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:
     v[ny+1, :] = 0
 
     ## Save Initial Conditions ##
-    np.save(f"{snapshots_dir}/u_sns_{0}.npy", u)
-    np.save(f"{snapshots_dir}/v_sns_{0}.npy", v)
-    np.save(f"{snapshots_dir}/p_sns_{0}.npy", p)
+    if (sns_flag == 1):
+        np.save(f"{snapshots_dir}/u_sns_{0}.npy", u)
+        np.save(f"{snapshots_dir}/v_sns_{0}.npy", v)
+        np.save(f"{snapshots_dir}/p_sns_{0}.npy", p)
 
     ## Calculate the matrix of the poisson problem
     A = poisson_system(nx, ny, dx, dy, bicgstab_flag)
@@ -88,10 +90,12 @@ def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:
     norm_u =  np.linalg.norm(u)
     #  Time Step by CFL condition
     if (dt <= 0):
-        dt_top = dx / norm_u
+        dt_a = 0.35 * (dx / norm_u)
+        dt_b = 0.2 * ((dx * dx) / nu)
+        dt_cfl = min(dt_a, dt_b)
         if (security_factor <= 0):
             security_factor = 1
-        dt = security_factor * dt_top
+        dt = security_factor * dt_cfl
 
     # Simulation Info
     if bicgstab_flag == 1:
@@ -115,7 +119,7 @@ def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:
     v_0 = v.copy()
     p_0 = p.copy()
 
-    while  ((error_v > convergence_criteria or error_u > convergence_criteria) and n < max_iterations):
+    while  ((error_v > convergence_criteria or error_u > convergence_criteria) and n <= max_iterations):
 
         if (n == 1):
             # Intermediate Velocity
@@ -194,10 +198,11 @@ def navier_stokes_2D(x0:float, xf:float, nx:int, y0:float, yf:float, ny:int, Re:
             print(f"\rIterations: [{bar}] {n} / {max_iterations} Time: {t:.2f}s Rel_Err_U: {error_u:.10f} Relative Err_V: {error_v:.10f} ", end="", flush=True)
 
             ## Save iteration ##
-            sns_n = n // sns_step
-            np.save(f"{snapshots_dir}/u_sns_{sns_n}.npy", u)
-            np.save(f"{snapshots_dir}/v_sns_{sns_n}.npy", v)
-            np.save(f"{snapshots_dir}/p_sns_{sns_n}.npy", p)
+            if (sns_flag == 1):
+                sns_n = n // sns_step
+                np.save(f"{snapshots_dir}/u_sns_{sns_n}.npy", u)
+                np.save(f"{snapshots_dir}/v_sns_{sns_n}.npy", v)
+                np.save(f"{snapshots_dir}/p_sns_{sns_n}.npy", p)
 
         ## Manage stops conditions on error
         if np.any(norm_u > 1e6):
